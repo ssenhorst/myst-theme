@@ -1,5 +1,21 @@
 # @myst-theme/landing-pages
 
+## 1.4.0
+
+### Patch Changes
+
+- 87f3ee3: Expose accent, neutral, and semantic colors as CSS custom properties for theme customization
+- 623f66d: 📦 Move to React 19 and update `peerDependencies`
+- babfb2f: Remove `orange`/`purple`/`gray` CSS color tokens.
+  Use `theorem`/`example`/`proof` color schemes instead.
+  Add a dedicated `--myst-color-error` group for UI error states (distinct from the content-level `danger` admonition).
+  Fix some bugs and Tailwind color class usage remaining from the CSS custom properties refactor.
+- Updated dependencies [87f3ee3]
+- Updated dependencies [623f66d]
+- Updated dependencies [babfb2f]
+  - myst-to-react@1.4.0
+  - @myst-theme/providers@1.4.0
+
 ## 1.3.1
 
 ### Patch Changes
