@@ -43,3 +43,6 @@ yalc.lock
 # backup
 *#
 *~
+
+# dist
+dist*
