@@ -68,6 +68,9 @@ options:
     id: numbered_references
     description: Show references as numbered, rather than in APA-style. Only applies to parenthetical citations
   - type: boolean
+    id: joined_references
+    description: Sort and join runs of three or more numbered parenthetical citations
+  - type: boolean
     id: folders
     description: Respect nested folder structure in URL paths
   - type: string

@@ -83,6 +83,7 @@ export type CommonTemplateOptions = {
   analytics_google?: string;
   analytics_plausible?: string;
   numbered_references?: boolean;
+  joined_references?: boolean;
   folders?: boolean;
   style?: string;
   hide_authors?: boolean;
