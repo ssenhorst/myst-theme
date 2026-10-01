@@ -15,6 +15,33 @@ import classNames from 'classnames';
 import type { AnyWidget } from './types.js';
 import { MystAnyModel } from './models.js';
 
+/**
+ * Turn any `$asset` markers in a widget model into plain URL strings.
+ *
+ * MyST cannot rewrite asset paths inside a model the way it does for `esm` and `css` --
+ * a model is opaque JSON -- so the build leaves a marker instead, which survives every
+ * URL-rewriting pass so that none of them can strand it at a stale prefix. This is the
+ * last stop before the widget sees its model, so the marker collapses to a string here.
+ *
+ * `$url` is set by the theme once a baseurl or CDN is known; `$resolved` is the build's
+ * site-relative path, and is the right answer when the document is served without one.
+ * Falling back to `$asset` means an asset the build could not find (already warned
+ * about) shows up as a failed request for the path the author wrote, rather than as an
+ * object where the widget expected a string.
+ */
+function resolveModelAssets(value: unknown): any {
+  if (typeof value !== 'object' || value === null) return value;
+  if (Array.isArray(value)) return value.map(resolveModelAssets);
+  const record = value as Record<string, unknown>;
+  if (typeof record.$asset === 'string') {
+    const { $url, $resolved, $asset } = record;
+    return typeof $url === 'string' ? $url : typeof $resolved === 'string' ? $resolved : $asset;
+  }
+  return Object.fromEntries(
+    Object.entries(record).map(([key, item]) => [key, resolveModelAssets(item)]),
+  );
+}
+
 export function AnyWidgetRenderer({ node }: { node: AnyWidget }) {
   // basic validation
   const esmModuleUrl = node.esm;
@@ -55,7 +82,7 @@ export function AnyWidgetRenderer({ node }: { node: AnyWidget }) {
         const widget = mod.default;
 
         // TODO: validate the widget
-        const model = new MystAnyModel(node.model);
+        const model = new MystAnyModel(resolveModelAssets(node.model));
         maybeCleanupInitialize = await widget.initialize?.({ model });
 
         // Apply container classes

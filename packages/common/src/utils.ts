@@ -96,6 +96,40 @@ export function getFooterLinks(
 
 type UpdateUrl = (url: string) => string;
 
+/**
+ * Resolve `$asset` markers in a widget model to a final URL, in place.
+ *
+ * A model is opaque JSON, so myst-cli cannot rewrite asset paths in it the way it does
+ * for `esm`, `css` or an image's `url`. Instead it leaves a marker naming the original
+ * path and, once the file has been copied next to the built site, where it landed:
+ *
+ *     {"source": {"$asset": "../data/object.zarr.zip", "$resolved": "/object-a1b2.zip"}}
+ *
+ * We add `$url`, which is `$resolved` put through the same `updateUrl` as every other
+ * static URL, so a baseurl or CDN prefix is picked up for free. The marker is left in
+ * place rather than replaced by the string: this mdast is shared and gets walked more
+ * than once per build, and a marker that collapsed to a plain string on the first pass
+ * would be unrecognisable on the second -- leaving the URL stuck at whatever prefix the
+ * first pass happened to use. Deriving `$url` from `$resolved` every time, and never
+ * from itself, makes repeated passes idempotent.
+ *
+ * `AnyWidgetRenderer` is where the marker finally becomes the string the widget sees.
+ */
+function updateModelAssetsInplace(value: unknown, updateUrl: UpdateUrl): void {
+  if (typeof value !== 'object' || value === null) return;
+  if (Array.isArray(value)) {
+    value.forEach((item) => updateModelAssetsInplace(item, updateUrl));
+    return;
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.$asset === 'string') {
+    const resolved = typeof record.$resolved === 'string' ? record.$resolved : record.$asset;
+    record.$url = updateUrl(resolved);
+    return;
+  }
+  Object.values(record).forEach((item) => updateModelAssetsInplace(item, updateUrl));
+}
+
 function updateMdastStaticLinksInplace(mdast: GenericParent, updateUrl: UpdateUrl) {
   // Fix all of the images to point to the CDN
   const images = selectAll('image', mdast) as Image[];
@@ -111,6 +145,7 @@ function updateMdastStaticLinksInplace(mdast: GenericParent, updateUrl: UpdateUr
     if (node.css) {
       node.css = updateUrl(node.css);
     }
+    updateModelAssetsInplace(node.model, updateUrl);
   });
   const links = selectAll('link,linkBlock,card', mdast) as Link[];
   const staticLinks = links?.filter((node) => node.static);
